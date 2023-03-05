@@ -18,6 +18,7 @@ packages/**/data
 
 # ts
 packages/hardhat-ts/cache
+packages/hardhat-ts/.env
 # secrets
 .secret
 

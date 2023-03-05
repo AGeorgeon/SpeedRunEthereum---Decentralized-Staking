@@ -5,21 +5,59 @@ import 'hardhat/console.sol';
 import './ExampleExternalContract.sol';
 
 contract Staker {
-  ExampleExternalContract public exampleExternalContract;
+    ExampleExternalContract public exampleExternalContract;
 
-  constructor(address exampleExternalContractAddress) public {
-    exampleExternalContract = ExampleExternalContract(exampleExternalContractAddress);
-  }
+    mapping (address => uint256) public balances;
 
-  // TODO: Collect funds in a payable `stake()` function and track individual `balances` with a mapping:
-  //  ( make sure to add a `Stake(address,uint256)` event and emit it for the frontend <List/> display )
+    uint256 public constant threshold = 1 ether;
+    uint256 public deadline = block.timestamp + 72 hours;
 
-  // TODO: After some `deadline` allow anyone to call an `execute()` function
-  //  It should call `exampleExternalContract.complete{value: address(this).balance}()` to send all the value
+    bool private openForWithdraw = false;
 
-  // TODO: if the `threshold` was not met, allow everyone to call a `withdraw()` function
+    event Stake(address indexed from, uint256 amount);
 
-  // TODO: Add a `timeLeft()` view function that returns the time left before the deadline for the frontend
+    constructor(address exampleExternalContractAddress) public {
+        exampleExternalContract = ExampleExternalContract(exampleExternalContractAddress);
+    }
 
-  // TODO: Add the `receive()` special function that receives eth and calls stake()
+    modifier checkWithdraw() {
+        require(address(this).balance < threshold, 'the threshold is not reached');
+        openForWithdraw = true;
+        _;
+    }
+
+    modifier notCompleted() {
+        require(exampleExternalContract.completed() == false, 'This staking is completed');
+        _;
+    }
+
+    function stake() public payable {
+        balances[msg.sender] += msg.value;
+        emit Stake(msg.sender, msg.value);
+    }
+
+    function execute() public notCompleted {
+        if (address(this).balance >= threshold && timeLeft() == 0) {
+            exampleExternalContract.complete{value: address(this).balance}();
+        }
+    }
+
+    function withdraw() public notCompleted checkWithdraw {
+        require(openForWithdraw == true, 'the threshold is not reached');
+
+        bool sendSuccess = payable(msg.sender).send(balances[msg.sender]);
+        require(sendSuccess, "Send failed");
+        balances[msg.sender] = 0;
+    }
+
+    function timeLeft() public view returns (uint256) {
+        if(block.timestamp >= deadline) {
+            return 0;
+        }
+        return deadline - block.timestamp;
+    }
+
+    receive() external payable {
+        stake();
+    }
 }

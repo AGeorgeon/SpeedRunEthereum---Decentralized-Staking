@@ -17,12 +17,16 @@ import 'hardhat-deploy';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as chalk from 'chalk';
+import * as dotenv from 'dotenv';
+dotenv.config();
+
 
 import { Provider, TransactionRequest } from '@ethersproject/providers';
 
 import { HardhatUserConfig, task } from 'hardhat/config';
 import { HttpNetworkUserConfig } from 'hardhat/types';
 import { HardhatRuntimeEnvironmentExtended, TEthers } from 'helpers/types/hardhat-type-extensions';
+import * as process from "process";
 
 declare module 'hardhat/types/runtime' {
   // This is an example of an extension to the Hardhat Runtime Environment.
@@ -36,7 +40,7 @@ const { isAddress, getAddress, formatUnits, parseUnits } = utils;
 //
 // Select the network you want to deploy to here:
 //
-const defaultNetwork = 'localhost';
+const defaultNetwork = 'goerli';
 
 const getMnemonic = () => {
   try {
@@ -65,6 +69,7 @@ const config: HardhatUserConfig = {
   networks: {
     localhost: {
       url: 'http://127.0.0.1:8545',
+      chainId: 31337,
       /*
         if there is no mnemonic, it will just use account 0 of the hardhat node to deploy
         (you can put in a mnemonic here to set the deployer locally)
@@ -98,10 +103,8 @@ const config: HardhatUserConfig = {
       },
     },
     goerli: {
-      url: 'https://goerli.infura.io/v3/460f40a260564ac4a4f4b3fffb032dad', // <---- YOUR INFURA ID! (or it won't work)
-      accounts: {
-        mnemonic: getMnemonic(),
-      },
+      url: 'https://goerli.infura.io/v3/' + process.env.GOERLI_INFURA_KEY, // <---- YOUR INFURA ID! (or it won't work)
+      accounts: [process.env.GOERLI_DEPLOYER_PRIV_KEY || ''],
     },
     xdai: {
       url: 'https://rpc.xdaichain.com/',
